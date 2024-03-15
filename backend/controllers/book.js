@@ -80,6 +80,64 @@ exports.deleteBook = (req, res, next) => {
     });
 };
 
+exports.getBestBooks = async (req, res) => { 
+  const bestBooks = [
+      {
+          $project: {
+              title: 1,
+              imageUrl: 1,
+              author: 1,
+              year: 1,
+              genre: 1,
+              averageRating: { $avg: '$ratings.grade' },
+          },
+      },
+      { $sort: { averageRating: -1 } },
+      { $limit: 3 }
+  ];
+
+  try { 
+      const books = await Book.aggregate(bestBooks);
+      return res.json(books);
+  } catch (error) {
+      return res.status(400).json({ error });
+  }
+};
+
+exports.bookRating = async (req, res, next) => {
+  const bookId = req.params.id;
+  const { userId, rating } = req.body;
+
+  if (rating < 0 || rating > 5) {
+    return res.status(400).json({ error: 'La note doit être comprise entre 0 et 5' });
+  }
+
+  try {
+    const book = await Book.findById(bookId);
+
+    if (!book) {
+      return res.status(404).json({ error: 'Livre non trouvé !' });
+    }
+
+    const ratingIndex = book.ratings.findIndex(rating => rating.userId == req.auth.userId);
+
+    if (ratingIndex !== -1) {
+          return res.status(400).json({ error: 'Déjà noté' });
+    } else {
+      book.ratings.push({ userId, grade: rating });
+    }
+
+    const totalRating = book.ratings.reduce((acc, rating) => acc + rating.grade, 0);
+    book.averageRating = totalRating / book.ratings.length;
+    book.averageRating = book.averageRating.toFixed(1);
+    
+    await book.save();
+    res.status(200).json(book);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 exports.getAllBooks = (req, res, next) => {
   Book.find()
     .then((book) => {
