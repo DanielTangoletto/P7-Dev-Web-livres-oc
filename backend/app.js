@@ -1,8 +1,7 @@
 const express = require("express");
 const path = require("path");
 const app = express();
-const bookRoutes = require("./routes/book");
-const userRoutes = require("./routes/user");
+
 require("dotenv").config();
 
 const mongoose = require("mongoose");
@@ -15,6 +14,9 @@ mongoose
   .catch(() => console.log("Connexion à MongoDB échouée !"));
 
 app.use(express.json());
+
+const bookRoutes = require("./routes/book");
+const userRoutes = require("./routes/user");
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

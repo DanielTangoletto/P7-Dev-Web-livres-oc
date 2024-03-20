@@ -1,5 +1,6 @@
 const Book = require("../models/Books");
 const fs = require("fs");
+const path = require("path");
 
 exports.createBook = async (req, res, next) => {
   const bookObject = JSON.parse(req.body.book);
@@ -8,7 +9,7 @@ exports.createBook = async (req, res, next) => {
   const book = await new Book({
     ...bookObject,
     userId: req.auth.userId,
-    imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
+    imageUrl: `${req.protocol}://${req.get("host")}/images/${path.parse(req.file.originalname).name}.webp`,
   });
 
   book
@@ -82,7 +83,7 @@ exports.modifyBook = async (req, res, next) => {
   const bookObject = req.file
     ? {
         ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
+        imageUrl: `${req.protocol}://${req.get("host")}/images/${path.parse(req.file.originalname).name}.webp`,
       }
     : { ...req.body };
 
