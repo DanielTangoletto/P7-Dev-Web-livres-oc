@@ -31,26 +31,33 @@ exports.bookRating = async (req, res, next) => {
   }
 
   try {
-    const book = Book.findById(bookId);
+    const book = await Book.findById(bookId);
 
     if (!book) {
       return res.status(404).json({ error: "Livre non trouvé !" });
     }
 
-    const ratingIndex = book.ratings.findIndex((rating) => rating.userId == req.auth.userId);
-
-    if (ratingIndex !== -1) {
-      return res.status(400).json({ error: "Déjà noté" });
-    } else {
-      book.ratings.push({ userId, grade: rating });
+    if (book.ratings.some((rating) => rating.userId === req.auth.userId)) {
+      return res.status(401).json({ error: "Vous avez déjà noté ce livre." });
     }
 
-    const totalRating = book.ratings.reduce((acc, rating) => acc + rating.grade, 0);
-    book.averageRating = (totalRating / book.ratings.length).toFixed(1);
+    const rating = parseFloat(req.body.rating);
+    const newRating = {
+      userId: req.auth.userId,
+      grade: rating,
+    };
 
-    await book.save();
+    book.ratings.push(newRating);
+
+    const sum = book.ratings.reduce((total, rating) => total + rating.grade, 0);
+    console.log(sum);
+    const average = sum / book.ratings.length;
+    console.log(average);
+    await Book.updateOne({ _id: req.params.id }, { ratings: book.ratings, averageRating: average });
+    book.averageRating = average;
     res.status(200).json(book);
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
